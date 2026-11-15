@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Аналитика продаж</title>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@800;900&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+:root,:root[data-tab="0"]{--bg:#f4f1ea;--pi:#111;--ps:#e8431b;--ac:#ff4d1c;--ac3:#ffb199;--pill:#ff4d1c;--pilt:#fff}
+:root[data-tab="1"]{--bg:#e8431b;--pi:#fff;--ps:#1a0a05;--ac:#e8431b;--ac3:#ffb199;--pill:#fff;--pilt:#e8431b}
+:root[data-tab="2"]{--bg:#1b2a8f;--pi:#fff;--ps:#a9bcff;--ac:#2b3fd6;--ac3:#8fa2ff;--ac2:#ff4d1c;--pill:#fff;--pilt:#1b2a8f}
+:root[data-tab="3"]{--bg:#ffc400;--pi:#111;--ps:#b4410a;--ac:#d35400;--ac3:#ffc400;--pill:#ffc400;--pilt:#111}
+:root[data-tab="4"]{--bg:#cfe0c3;--pi:#111;--ps:#2f6b3f;--ac:#1f7a43;--ac3:#8fd19e;--pill:#cfe0c3;--pilt:#111}
+:root[data-tab="5"]{--bg:#101010;--pi:#f4f1ea;--ps:#c6f432;--ac:#1f9d55;--ac3:#c6f432;--ac2:#ff4d1c;--pill:#c6f432;--pilt:#111}
+:root[data-tab="6"]{--bg:#ffb3c7;--pi:#111;--ps:#c1123f;--ac:#c1123f;--ac3:#ff7a9c;--pill:#ffb3c7;--pilt:#111}
+:root{--ink:#111;--mu:#6c6a63;--ln:rgba(17,17,17,.1);--sf:#fff;--bg2:#f1efe8;--good:#0a8f4f;--bad:#d6204a;--tip:#111;--ac2:#111111;--pm:color-mix(in srgb,var(--pi) 68%,transparent);--sh:0 22px 44px -28px rgba(0,0,0,.6)}
+:root[data-tab="2"]{--ac2:#ff4d1c}:root[data-tab="5"]{--ac2:#ff4d1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--pi);font:15px/1.55 Manrope,"Segoe UI",system-ui,sans-serif;overflow-x:hidden;transition:background-color .9s cubic-bezier(.4,0,.2,1),color .6s}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.06;mix-blend-mode:multiply;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+main{max-width:1180px;margin:0 auto;padding:18px 20px 90px}
+@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(105%)}to{transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.4) rotate(-8deg)}to{opacity:1;transform:none}}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -11px}}
+@keyframes gw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes grow{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+@keyframes mq{to{transform:translateX(-50%)}}
+.rv{animation:rise .7s cubic-bezier(.2,.7,.2,1) backwards}
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center}
+.lg{display:flex;align-items:center;gap:10px;font:900 18px Montserrat,sans-serif;letter-spacing:-.02em;text-transform:uppercase}
+.lg b{width:36px;height:36px;border-radius:12px;background:var(--pi);color:var(--bg);display:grid;place-items:center;transition:background-color .9s,color .9s}
+.lg em{font:italic 500 21px "Playfair Display",Georgia,serif;text-transform:none;color:var(--ps)}
+button{background:#111;color:#fff;border:0;border-radius:999px;padding:11px 20px;font:700 14px Manrope,sans-serif;cursor:pointer;transition:transform .3s cubic-bezier(.3,1.4,.4,1),background .2s}
+button:hover{transform:translateY(-2px)}button:active{transform:scale(.96)}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--ps);outline-offset:3px}
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--pi);color:var(--bg);padding:14px 26px;border-radius:999px;font:800 14px Manrope,sans-serif;text-decoration:none;transition:transform .3s cubic-bezier(.3,1.4,.4,1),background-color .9s,color .9s}
+.cta:hover{transform:translateY(-3px) scale(1.04);text-decoration:none}
+/* hero */
+.hr{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:center;min-height:540px;padding:34px 0 20px}
+.ghost{position:absolute;right:-2%;top:50%;transform:translateY(-50%);font:900 clamp(220px,34vw,470px)/1 Montserrat,sans-serif;color:transparent;-webkit-text-stroke:2px color-mix(in srgb,var(--pi) 15%,transparent);pointer-events:none;user-select:none;animation:rise 1.2s backwards}
+.hl,.hp{position:relative;z-index:1}
+.bdg{display:inline-flex;align-items:center;gap:9px;background:var(--pi);color:var(--bg);font:800 12px Manrope,sans-serif;letter-spacing:.09em;padding:9px 16px;border-radius:999px;margin-bottom:24px;animation:rise .7s backwards}
+.bdg i{width:6px;height:6px;border-radius:50%;background:var(--ps)}
+.hd{font:900 clamp(36px,6.4vw,84px)/.95 Montserrat,Impact,sans-serif;letter-spacing:-.04em;margin:0;text-transform:uppercase}
+.ln{display:block;overflow:hidden;padding:0 0 .1em;font-style:normal}
+.ln>span{display:block;animation:up 1s cubic-bezier(.2,.9,.2,1) both}
+.ln.sr{margin-top:.02em}.ln.sr>span{animation-delay:.14s}
+.sr{font:italic 500 clamp(34px,5.8vw,76px)/1.05 "Playfair Display",Georgia,serif;letter-spacing:-.02em;text-transform:none;color:var(--ps);transition:color .9s}
+.hl p{max-width:440px;font-size:17px;color:var(--pm);margin:22px 0 28px;animation:rise .8s .3s backwards}
+.acts{animation:rise .8s .45s backwards}
+.hp{display:flex;justify-content:center;min-height:500px;align-items:center}
+.ph{position:relative;width:250px;height:480px;border-radius:44px;background:#0c0c0c;padding:10px;box-shadow:0 44px 70px -30px rgba(0,0,0,.65),inset 0 0 0 2px #2b2b2b;transform:rotate(5deg);animation:bob 6s ease-in-out infinite}
+.scr{height:100%;border-radius:35px;background:linear-gradient(170deg,#1d1d1d,#0a0a0a);color:#fff;padding:40px 18px 18px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.notch{position:absolute;top:11px;left:50%;width:84px;height:23px;margin-left:-42px;background:#000;border-radius:14px}
+.scr small{color:#a3a3a3;font-size:12px}
+.scr .big{font:900 32px/1.15 Montserrat,sans-serif;letter-spacing:-.03em;margin:4px 0 2px;display:block}
+.scr .lbl{color:#8d8d8d;font-size:12px}
+.pbars{flex:1;display:flex;gap:5px;align-items:flex-end;margin:18px 0}
+.pbars i{flex:1;height:var(--h);border-radius:7px;background:var(--pill);transform-origin:bottom;animation:gw .9s cubic-bezier(.2,1.3,.3,1) both;animation-delay:calc(var(--i)*60ms + .5s);transition:background-color .9s}
+.pf{display:flex;justify-content:space-between;align-items:center;background:#fff;color:#111;border-radius:18px;padding:13px 16px;font-weight:700}
+.chip2{position:absolute;z-index:2;display:flex;align-items:center;gap:9px;background:#fff;color:#111;border-radius:15px;padding:8px 15px 8px 8px;font:800 13px Manrope,sans-serif;box-shadow:0 16px 30px -12px rgba(0,0,0,.5);white-space:nowrap;animation:pop .7s cubic-bezier(.2,1.4,.3,1) both,bob 4.5s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + .8s)}
+.chip2 u{width:24px;height:24px;border-radius:8px;display:inline-block}
+.band{margin:14px -60px 44px;transform:rotate(-1.6deg);background:var(--pi);color:var(--bg);overflow:hidden;padding:15px 0;white-space:nowrap;transition:background-color .9s,color .9s}
+.bt{display:inline-block;font:900 22px Montserrat,sans-serif;letter-spacing:.05em;animation:mq 30s linear infinite}
+.dots{position:fixed;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:40}
+.dt{width:9px;height:9px;padding:0;border-radius:50%;background:color-mix(in srgb,var(--pi) 30%,transparent);transition:height .4s cubic-bezier(.3,1.4,.4,1),background-color .4s}
+.dt.on{height:28px;border-radius:6px;background:var(--pi)}
+@media(max-width:900px){.dots{display:none}.hr{grid-template-columns:1fr}.hp{min-height:540px}.ghost{opacity:.6}}
+/* headings */
+h2{display:flex;align-items:center;gap:12px;font:800 clamp(20px,2.6vw,28px)/1.15 Montserrat,sans-serif;letter-spacing:-.025em;margin:40px 0 16px}
+h2::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;background:var(--ps);transition:background-color .9s}
+h2.big2{font-size:clamp(26px,4.4vw,48px);text-transform:uppercase;letter-spacing:-.04em;margin:8px 0 22px;display:block}
+h2.big2::before{display:none}
+h2.big2 em{font:italic 500 1.05em "Playfair Display",Georgia,serif;text-transform:none;color:var(--ps);letter-spacing:-.02em}
+p.s{color:var(--pm);margin:0 0 18px}
+a{color:inherit;font-weight:700}
+/* uploads */
+.up{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;counter-reset:s}
+.up label{counter-increment:s;position:relative;background:#fff;color:var(--mu);border-radius:28px;padding:22px 24px;display:block;font-size:13px;box-shadow:var(--sh);transition:transform .35s cubic-bezier(.3,1.4,.4,1)}
+.up label:hover{transform:translateY(-6px) rotate(-.8deg)}
+.up label::before{content:"0" counter(s);display:block;font:900 56px/1 Montserrat,sans-serif;letter-spacing:-.05em;color:var(--ink);margin-bottom:12px}
+.up b{display:block;color:var(--ink);font:800 18px Montserrat,sans-serif;letter-spacing:-.02em;margin-bottom:4px}
+.up small{display:block;margin-bottom:14px;min-height:38px}
+input[type=file]{font:inherit;color:var(--mu);width:100%;font-size:12.5px}
+input::file-selector-button{background:#111;color:#fff;border:0;border-radius:999px;padding:8px 16px;margin-right:10px;cursor:pointer;font:700 13px Manrope,sans-serif}
+.up label.ok::before{color:var(--good)}
+.up label.ok::after{content:"✓ загружено";display:block;margin-top:10px;color:var(--good);font-weight:800;font-size:13px}
+/* nav */
+nav#nav{position:sticky;top:12px;z-index:30;display:flex;gap:4px;overflow-x:auto;padding:6px;background:#111;border:1px solid rgba(255,255,255,.16);border-radius:999px;margin:34px 0 8px;scrollbar-width:none;box-shadow:0 20px 40px -20px rgba(0,0,0,.6)}
+nav#nav::-webkit-scrollbar{display:none}
+nav#nav button{position:relative;z-index:1;background:none;color:rgba(255,255,255,.72);padding:11px 20px;white-space:nowrap;box-shadow:none}
+nav#nav button:hover{color:#fff;transform:none}
+nav#nav button.on,nav#nav button.on:hover{color:var(--pilt);transition:color .5s}
+.pill{position:absolute;top:6px;bottom:6px;left:0;width:0;border-radius:999px;background:var(--pill);transition:transform .55s cubic-bezier(.3,1.25,.4,1),width .55s cubic-bezier(.3,1.25,.4,1),background-color .6s}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.c,.box,.cal{position:relative;background:var(--sf);color:var(--ink);border-radius:26px;box-shadow:var(--sh)}
+.c{overflow:hidden;padding:18px 20px;transition:transform .35s cubic-bezier(.3,1.4,.4,1)}
+.c::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,var(--ac),var(--ac3))}
+.c:hover{transform:translateY(-6px) rotate(-.6deg)}
+.c span{color:var(--mu);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.c strong{display:block;font:900 30px/1.15 Montserrat,sans-serif;letter-spacing:-.04em;margin:6px 0 3px;font-variant-numeric:tabular-nums}
+.c em{font-style:normal;font-size:12.5px;color:var(--mu)}
+.c em.pos,.pos{color:var(--good)}.c em.neg,.neg{color:var(--bad)}
+.box{padding:18px;margin-bottom:14px;overflow-x:auto}
+.box canvas{max-height:310px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 10px;text-align:right;border-bottom:1px solid var(--ln);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-weight:700}
+th{color:var(--mu);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+tr{transition:background .2s}tr:hover td{background:var(--bg2)}tr:last-child td{border-bottom:0}
+.box a{color:var(--ac)}
+.t{display:inline-block;min-width:26px;text-align:center;border-radius:999px;background:var(--bg2);color:var(--ink);font-weight:800;padding:3px 12px;font-size:12.5px}
+.A,.B,.C{color:#fff}
+.A{background:#12a15f}.B{background:#e58a00}.C{background:#e0264f}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+.set{display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+.hint{color:var(--pm);padding:30px;text-align:center}
+.empty{text-align:center;padding:30px 16px 20px}
+.bars{display:flex;gap:9px;align-items:flex-end;justify-content:center;height:110px;margin-bottom:22px}
+.bars i{width:16px;border-radius:8px;background:var(--pi);transform-origin:bottom;animation:grow 1.5s ease-in-out infinite alternate;animation-delay:calc(var(--i)*.18s)}
+.empty h2{justify-content:center;margin:0 0 8px}.empty h2::before{display:none}
+.empty p{color:var(--pm);max-width:480px;margin:0 auto 22px}
+.empty button{background:var(--pi);color:var(--bg)}
+/* components */
+.dg{display:inline-block;height:1.15em;overflow:hidden;vertical-align:top;line-height:1.15}
+.dg>span{display:block;line-height:1.15;transform:translateY(calc(var(--d)*-1.15em));transition:transform 1.2s cubic-bezier(.2,1.15,.3,1) calc(var(--i)*55ms)}
+.ch{display:inline-block;vertical-align:top;line-height:1.15}
+.sv{line-height:1.15}
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:6px}
+.bento .cal{grid-row:span 2}.bento .mb{grid-column:span 3}.bento .wvc{grid-column:1/-1}
+@media(max-width:820px){.bento{grid-template-columns:repeat(2,1fr)}.bento .mb,.bento .cal{grid-column:1/-1;grid-row:auto}}
+.dk{background:#0d0d0d!important;color:#fff!important}
+.dk span,.dk em,.dk small{color:#a0a0a0}
+.rg{text-align:center}
+.ring{position:relative;width:108px;height:108px;margin:6px auto 12px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.rt,.rf{fill:none;stroke-width:9}.rt{stroke:var(--ln)}.dk .rt{stroke:rgba(255,255,255,.14)}
+.rf{stroke:url(#gr);stroke-linecap:round;stroke-dasharray:251.33;stroke-dashoffset:251.33;transition:stroke-dashoffset 1.6s cubic-bezier(.25,1,.35,1) .15s}
+.ring strong{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0}
+.mb .bs{display:flex;gap:7px;align-items:flex-end;height:104px;margin-top:12px}
+.bs i,.wf i{transform:scaleY(0);transform-origin:bottom}
+.bs i{flex:1;height:var(--h);border-radius:9px;background:var(--ln);cursor:pointer;transition:transform .9s cubic-bezier(.2,1.3,.3,1) calc(var(--i)*45ms),background .3s}
+.bs.in i,.wf.in i{transform:scaleY(1)}
+.bs i:hover{background:var(--ac3)}
+.bs i.hi,.bs i.hi:hover{background:linear-gradient(var(--ac3),var(--ac))}
+.wvc{padding:18px 22px}.wvc::before{display:none}
+.wh{display:flex;align-items:center;gap:14px;margin-bottom:16px}.wh b{display:block}.wh small{display:block;font-size:12.5px}
+.wt{margin-left:auto;font-style:normal;color:#e6ffd0!important;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.pl{width:46px;height:46px;border-radius:50%;padding:0;background:#fff;color:#0d0d0d;font-size:15px}
+.wf{display:flex;gap:4px;align-items:center;height:68px}
+.wf i{flex:1;max-width:16px;height:var(--h);border-radius:5px;background:#3b3b3b;transition:transform .8s cubic-bezier(.2,1.3,.3,1) calc(var(--i)*25ms),background .25s}
+.wf i.on{background:linear-gradient(var(--ac3),var(--ac))}
+.cal{padding:16px}
+.ch2{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.ch2 b{text-transform:capitalize}
+.ch2 button{width:28px;height:28px;padding:0;background:var(--bg2);color:var(--ink);margin-left:4px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:12.5px}
+.cg i{font-style:normal;color:var(--mu);font-size:11px;padding:4px 0}.cg u{display:block}
+.cg button{background:none;color:var(--ink);padding:0;aspect-ratio:1;font-weight:700;font-size:12.5px}
+.cg button:hover:not(:disabled){background:var(--bg2);transform:scale(1.12)}
+.cg button.sel,.cg button.sel:hover{background:var(--ac);color:#fff}
+.cg button:disabled{opacity:.28;cursor:default}
+.pb{display:inline-block;width:70px;height:7px;border-radius:9px;background:var(--ln);vertical-align:middle;margin-left:10px;overflow:hidden}
+.pb i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,var(--ac),var(--ac3));transition:width 1.2s cubic-bezier(.2,.9,.2,1)}
+.pb i.in{width:var(--w)}.pb.bd i{background:linear-gradient(90deg,#f59e0b,var(--bad))}
+.stp{display:flex;align-items:center;gap:12px}.stp>span{color:var(--mu);font-weight:700;font-size:13px}
+.stp div{display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:999px;padding:4px}
+.stp button{width:32px;height:32px;padding:0;background:#fff;color:var(--ink);box-shadow:0 4px 10px -4px rgba(0,0,0,.4);font-size:18px}
+.stp b{min-width:34px;font-size:18px;font-weight:900;display:flex;justify-content:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:transparent;color:var(--pi);border:2px solid var(--pi);padding:8px 18px}
+.chip.on{background:var(--pi);color:var(--bg)}
+@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ac)"/><stop offset="1" style="stop-color:var(--ac3)"/></linearGradient></defs></svg>
+<nav class="dots" id="dots" aria-label="Разделы"></nav>
+<main>
+<header class="top"><div class="lg"><b><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg></b>Аналитика <em>продаж</em></div><button class="cta" id="demo">Демо-данные</button></header>
+<section class="hr" id="hero"></section>
+<div class="band" aria-hidden="true"><div class="bt">ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ ВЫРУЧКА ✺ МАРЖА ✺ ОСТАТКИ ✺ ПРОГНОЗ ✺ ABC ✺ ВОЗВРАТЫ ✺ </div></div>
+<h2 class="big2">Загрузите <em>три файла</em></h2>
+<div class="up" id="up">
+<label id="l1"><b>Продажи</b><small>дата, товар, количество, цена, сумма, себестоимость, выручка (+ город, канал, статус, причина)</small><input type="file" id="f1" accept=".xlsx,.xls,.csv"></label>
+<label id="l2"><b>Товары</b><small>товар, себестоимость, цена</small><input type="file" id="f2" accept=".xlsx,.xls,.csv"></label>
+<label id="l3"><b>Приход</b><small>товар, дата прихода, количество, продано, остатки</small><input type="file" id="f3" accept=".xlsx,.xls,.csv"></label>
+</div>
+<nav id="nav"></nav>
+<div id="out"><div class="empty"><div class="bars"><i style="--i:0;height:40%"></i><i style="--i:1;height:70%"></i><i style="--i:2;height:55%"></i><i style="--i:3;height:95%"></i><i style="--i:4;height:65%"></i><i style="--i:5;height:85%"></i><i style="--i:6;height:50%"></i></div><h2>Здесь появится ваша аналитика</h2><p>Загрузите файл продаж выше, остальные два файла добавят остатки и себестоимость. Или посмотрите, как всё выглядит, на демо-данных.</p><button onclick="document.getElementById('demo').click()">Открыть демо</button></div></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const S={sales:[],prods:[],rec:[]};let D=[],P={},ST={},TAB=0,CH={},MAXK='';
+const norm=s=>String(s==null?'':s).toLowerCase().replace(/ё/g,'е').trim();
+const F={date:['дата продажи','дата'],item:['товар','наименование','название'],qty:['количество','кол-во','кол'],price:['цена'],sum:['сумма'],cost:['себестоимость','себест'],rev:['выручка'],city:['город'],chan:['канал'],status:['статус'],reason:['причина']};
+const R={date:['дата прихода','дата'],item:['товар','наименование'],qty:['количество','кол-во'],sold:['продано'],left:['остатки','остаток']};
+function pick(row,keys){for(const k in row){const n=norm(k);if(keys.some(x=>n===x||n.startsWith(x)))return row[k]}return undefined}
+const num=v=>{if(typeof v==='number')return v;const n=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));return isNaN(n)?0:n};
+function pd(v){if(v instanceof Date)return v;if(typeof v==='number')return new Date(Math.round((v-25569)*864e5)+new Date().getTimezoneOffset()*6e4);
+const s=String(v||'').trim(),m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);if(m)return new Date(+(m[3].length==2?'20'+m[3]:m[3]),m[2]-1,+m[1]);const d=new Date(s);return isNaN(d)?null:d}
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addD=(k,n)=>{const d=new Date(k+'T00:00:00');d.setDate(d.getDate()+n);return key(d)};
+const wk=k=>{const d=new Date(k+'T00:00:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return key(d)};
+const fmt=n=>Math.round(n).toLocaleString('ru-RU'),pc=n=>(isFinite(n)?n.toFixed(1):'0.0')+'%';
+const sm=(a,f)=>a.reduce((t,x)=>t+(typeof f=='function'?f(x):x[f]),0);
+function grp(a,f){const m={};a.forEach(x=>{const k=f(x);(m[k]=m[k]||[]).push(x)});return m}
+async function readFile(f){const b=await f.arrayBuffer();const wb=XLSX.read(b,{type:'array',cellDates:true});return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}
+[['f1','sales','l1'],['f2','prods','l2'],['f3','rec','l3']].forEach(([id,k,l])=>$('#'+id).onchange=async e=>{const f=e.target.files[0];if(!f)return;try{S[k]=await readFile(f);$('#'+l).classList.add('ok');build()}catch(x){alert('Не удалось прочитать файл: '+x.message)}});
+function build(){
+P={};S.prods.forEach(r=>{const it=String(pick(r,F.item)||'').trim();if(it)P[it]={cost:num(pick(r,F.cost)),price:num(pick(r,F.price))}});
+D=S.sales.map(r=>{const d=pd(pick(r,F.date)),item=String(pick(r,F.item)||'').trim();if(!d||!item)return null;
+const q=num(pick(r,F.qty))||1,pr=num(pick(r,F.price))||(P[item]?P[item].price:0),rev=num(pick(r,F.rev))||num(pick(r,F.sum))||q*pr;
+let uc=num(pick(r,F.cost));if(!uc&&P[item])uc=P[item].cost;const s=norm(pick(r,F.status));
+return{k:key(d),item,q,rev,cost:uc*q,city:String(pick(r,F.city)||'').trim()||'—',chan:String(pick(r,F.chan)||'').trim()||'—',reason:String(pick(r,F.reason)||'').trim()||'—',bad:/брак|порч|испорч|просроч/.test(s+' '+norm(pick(r,F.reason))),st:/отмен/.test(s)?'c':/возврат|брак/.test(s)?'r':'o',hasSt:s!==''}}).filter(Boolean);
+MAXK=D.length?D.reduce((m,x)=>x.k>m?x.k:m,'0'):'';
+ST={};S.rec.forEach(r=>{const it=String(pick(r,R.item)||'').trim();if(!it)return;const d=pd(pick(r,R.date)),l=pick(r,R.left),o=ST[it]=ST[it]||{inn:0,left:null,ld:0};o.inn+=num(pick(r,R.qty));if(l!==undefined&&l!==''&&(!d||+d>=o.ld)){o.left=num(l);o.ld=d?+d:0}});
+navSet();
+render()}
+function tbl(h,rows){return`<table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`}
+function mk(id,type,labels,sets,opt){try{if(!window.Chart)throw new Error('библиотека графиков не загрузилась, проверьте интернет');mk0(id,type,labels,sets,opt)}catch(e){const el=document.getElementById(id);if(el&&el.parentNode)el.parentNode.innerHTML='<p class="hint">Не удалось построить график: '+e.message+'</p>'}}
+const hx=c=>{c=String(c).trim();if(/^#[0-9a-f]{3}$/i.test(c))c='#'+[...c.slice(1)].map(x=>x+x).join('');return c};
+function mk0(id,type,labels,sets,opt){if(CH[id])CH[id].destroy();const el=document.getElementById(id);if(!el)return;const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim(),mu=g('--mu'),ln=g('--ln'),A1=hx(g('--ac')),A2=hx(g('--ac2'));
+const grad=(c,l)=>x=>{const a=x.chart.chartArea;if(!a)return c;const gr=x.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);gr.addColorStop(0,c+(l?'73':'ff'));gr.addColorStop(1,c+(l?'00':'4d'));return gr};
+CH[id]=new Chart(el,{type,data:{labels,datasets:sets.map((s,i)=>{const c=i?A2:A1,l=(s.type||type)==='line';return Object.assign({backgroundColor:grad(c,l),borderColor:c,borderRadius:7,borderSkipped:false,borderWidth:l?2.5:0,fill:l&&i==0&&type==='line',tension:.38,pointRadius:l?3:0,pointHoverRadius:6},s)})},options:Object.assign({responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:mu,usePointStyle:true,boxWidth:8}},tooltip:{backgroundColor:g('--tip'),titleColor:'#fff',bodyColor:'#e6edf3',padding:11,cornerRadius:10}},scales:{x:{ticks:{color:mu},grid:{display:false}},y:{ticks:{color:mu},grid:{color:ln}}}},opt||{})})}
+const box=(t,id)=>`<h2>${t}</h2><div class="box"><canvas id="${id}"></canvas></div>`;
+const OK=()=>D.filter(x=>x.st==='o');
+function dayS(k){const r=D.filter(x=>x.k===k),o=r.filter(x=>x.st==='o');return{n:r.length,rev:sm(o,'rev'),pf:sm(o,'rev')-sm(o,'cost'),u:sm(o,'q'),ret:r.filter(x=>x.st==='r').length,can:r.filter(x=>x.st==='c').length}}
+function card(l,v,p,f,inv){const d=p?(v-p)/p*100:0,good=inv?d<=0:d>=0;return`<div class="c"><span>${l}</span><strong>${f(v)}</strong><em class="${p?(good?'pos':'neg'):''}">${p?(d>=0?'+':'')+d.toFixed(1)+'% к '+f(p):'нет данных за прошлую неделю'}</em></div>`}
+function render(){document.documentElement.dataset.tab=TAB;if(HT!==TAB||!QUIET){heroRender();HT=TAB}
+document.querySelectorAll('#nav button').forEach((b,i)=>b.className=i==TAB?'on':'');pill();
+const o=$('#out');if(!D.length){if(!S.sales.length)return;o.innerHTML='<p class="hint">В файле продаж не найдено строк с датой и товаром. Проверьте названия колонок.</p>';return}
+[daily,recs,trend,abc,margin,geo,returns][TAB](o);fx()}
+function daily(o){const R=REF||MAXK,ok=OK(),m=D.length,tot=sm(ok,'rev'),n1=D.filter(x=>x.st==='r').length,n2=D.filter(x=>x.st==='c').length,g=grp(ok,x=>x.k),ks=[];for(let i=29;i>=0;i--)ks.push(addD(R,-i));
+const v=ks.map(k=>g[k]?sm(g[k],'rev'):0),lb=ks.map(k=>k.slice(5).split('-').reverse().join('.'));
+let h=`<p class="s">Выбран день ${R}, последний день в данных ${MAXK}. Выберите дату в календаре, и цифры пересчитаются.</p><div class="bento">${cal()}${ring((m-n1-n2)/m*100,'Выкуп','без возвратов и отмен',1)}${ring((tot-sm(ok,'cost'))/(tot||1)*100,'Маржа','прибыль к выручке')}${ring((m-n2)/m*100,'Выполнено','заказы без отмен')}${mbars(v.slice(-14),lb.slice(-14))}${wavec(v,lb)}</div>`;
+[[R===MAXK?'Сегодня':'Выбранный день',R],[R===MAXK?'Вчера':'Накануне',addD(R,-1)]].forEach(([t,k])=>{const a=dayS(k),b=dayS(addD(k,-7)),bp=x=>x.n?(x.n-x.ret-x.can)/x.n*100:0,cp=x=>x.n?x.can/x.n*100:0;
+h+=`<h2>${t} (${k})</h2><div class="cards">${card('Выручка',a.rev,b.rev,fmt)}${card('Прибыль',a.pf,b.pf,fmt)}${card('Заказов',a.n,b.n,fmt)}${card('Единиц',a.u,b.u,fmt)}${card('Выкуп',bp(a),bp(b),pc)}${card('Отмены',cp(a),cp(b),pc,1)}</div>`});
+h+=`<h2>Всего за период</h2><div class="cards"><div class="c"><span>Выручка</span><strong>${fmt(tot)}</strong></div><div class="c"><span>Прибыль</span><strong>${fmt(tot-sm(ok,'cost'))}</strong></div><div class="c"><span>Маржа</span><strong>${pc((tot-sm(ok,'cost'))/(tot||1)*100)}</strong></div><div class="c"><span>Заказов</span><strong>${fmt(m)}</strong></div></div>`+box('Последние 30 дней','c1');o.innerHTML=h;
+mk('c1','bar',lb,[{label:'Выручка',data:v}])}
+function trend(o){o.innerHTML=box('Выручка и прибыль по неделям','c1')+box('Выручка и прибыль по месяцам','c2');
+[['c1',x=>wk(x.k)],['c2',x=>x.k.slice(0,7)]].forEach(([id,f])=>{const g=grp(OK(),f),ks=Object.keys(g).sort();
+mk(id,'bar',ks,[{label:'Выручка',data:ks.map(k=>sm(g[k],'rev'))},{label:'Прибыль',type:'line',data:ks.map(k=>sm(g[k],'rev')-sm(g[k],'cost'))}])})}
+const CFG={lead:14,safe:7,hor:30};let RW=[],SEL=0,WK=[],LF='';
+const reg=a=>{const n=a.length,mx=(n-1)/2,my=sm(a,x=>x)/n;let sxy=0,sxx=0;a.forEach((y,i)=>{sxy+=(i-mx)*(y-my);sxx+=(i-mx)*(i-mx)});const b=sxx?sxy/sxx*.5:0;return{a:my-b*mx,b,n}};
+const pw=(r,j)=>Math.max(0,r.a+r.b*(r.n-1+j));
+const fcU=(r,H)=>{let t=0;for(let d=1;d<=H;d++)t+=pw(r,Math.ceil(d/7))/7;return t};
+function mets(){
+const ok=OK(),all=grp(D,x=>x.item),g=grp(ok,x=>x.item),tot=sm(ok,'rev')||1,minK=D.reduce((m,x)=>x.k<m?x.k:m,'9'),
+lf=new Date(MAXK+'T00:00:00').getDay()==0?wk(MAXK):addD(wk(MAXK),-7),nW=Math.max(2,Math.min(8,Math.floor((new Date(MAXK)-new Date(minK))/6048e5))),
+wks=[...Array(nW)].map((_,i)=>addD(lf,-7*(nW-1-i)));WK=wks;LF=lf;
+const names=[...new Set([...Object.keys(P),...Object.keys(all),...Object.keys(ST)])];
+const rows=names.map(k=>{
+const r=g[k]||[],a=all[k]||[],wm=grp(r,x=>wk(x.k)),ser=wks.map(w=>wm[w]?sm(wm[w],'q'):0),rg=reg(ser),mean=sm(ser,x=>x)/nW,cv=mean?Math.sqrt(sm(ser,x=>(x-mean)*(x-mean))/nW)/mean:9,
+rev=sm(r,'rev'),u=sm(r,'q'),pf=rev-sm(r,'cost'),price=u?rev/u:(P[k]?P[k].price:0),uc=u?sm(r,'cost')/u:(P[k]?P[k].cost:0),
+h=Math.floor(nW/2),rec=sm(ser.slice(-h),x=>x),prev=sm(ser.slice(-2*h,-h),x=>x),tr=prev?(rec-prev)/prev*100:null,
+pace=fcU(rg,30)/30,s=ST[k],st=s?(s.left!==null?s.left:s.inn-u):null,days=st!==null&&pace>.01?st/pace:null,
+safety=pace*CFG.safe*(1+Math.min(cv,1.5)*.5),rop=pace*CFG.lead+safety,
+order=st===null?null:Math.max(0,Math.ceil(fcU(rg,CFG.lead+CFG.hor)+safety-st)),
+exc=st===null?0:Math.max(0,st-fcU(rg,90)-safety),
+rr=a.length?a.filter(x=>x.st==='r').length/a.length*100:0,bad=a.length?a.filter(x=>x.bad).length/a.length*100:0,
+mg=rev?pf/rev*100:(P[k]&&P[k].price?(P[k].price-P[k].cost)/P[k].price*100:0),fr=fcU(rg,CFG.hor);
+return{k,rev,pf,price,ser,rg,cv,rec,tr,pace,st,days,rop,order,exc,excCap:exc*uc,frozen:(st||0)*uc,rr,bad,mg,fc:fr,fcRev:fr*price,loss:rr/100*fr*price,lost:days!==null&&days<CFG.lead?(CFG.lead-days)*pace*price:0,xyz:mean<=0?'Z':cv<.5?'X':cv<1?'Y':'Z'}}).sort((x,y)=>y.rev-x.rev);
+let c=0;rows.forEach(x=>{const b=c/tot;c+=x.rev;x.cl=x.rev<=0?'C':b<.8?'A':b<.95?'B':'C'});return rows}
+const L={stop:['Не закупать, распродать','C',0],cut:['Закупать меньше','B',1],price:['Пересмотреть цену','B',2],up:['Заказать сейчас','A',3],grow:['Увеличить закупку','A',4],hold:['Держать как есть','',5]};
+function recs(o){
+const rows=mets();RW=rows;
+rows.forEach(x=>{const why=[],weak=x.cl==='C'||x.rec<=0||(x.tr!==null&&x.tr<-30),risky=x.rr>15||x.bad>8,over=x.st!==null&&(x.pace>.01?x.days>90:x.st>0),thin=x.mg<15;
+if(x.rec<=0)why.push('нет продаж за последние недели');else if(x.cl==='C')why.push('входит в класс C: почти не даёт выручки');if(x.tr!==null&&x.tr<-30)why.push('спрос падает: '+fmt(x.tr)+'%');
+if(x.bad>8)why.push('брак и порча '+pc(x.bad)+' заказов');if(x.rr>15)why.push('возвраты '+pc(x.rr));
+if(over)why.push(x.pace>.01?'запаса на '+fmt(x.days)+' дн., нужно меньше 90':'товар лежит без движения');if(thin)why.push('маржа '+pc(x.mg));
+if(x.cv>=1&&x.rec>0)why.push('спрос скачет (группа Z), держите больше запаса, но заказывайте частями');
+let v,q='';const o2=x.order;
+if(x.st>0&&x.rec<=0||(weak&&risky&&over)){v='stop';q='Заказ 0. Излишек '+fmt(x.exc||x.st)+' шт.'}
+else if(weak&&(risky||thin||over)||(over&&(risky||thin))||x.bad>15){v='cut';q=o2===null?'Сократить партию':'Не больше '+fmt(o2*.5)+' шт. (по прогнозу '+fmt(o2)+')'}
+else if(thin&&!weak&&!risky){v='price';q='Поднять цену или снизить себестоимость'}
+else if(x.st!==null&&x.st<=x.rop&&x.cl!=='C'&&!risky){v='up';why.push('остаток '+fmt(x.st)+' шт. ниже точки заказа '+fmt(x.rop)+' шт.');q='Заказать '+fmt(o2)+' шт. Поставка '+CFG.lead+' дн.'}
+else if(x.tr!==null&&x.tr>20&&x.cl!=='C'&&!risky&&!thin){v='grow';why.push('спрос растёт: +'+fmt(x.tr)+'%');q=o2===null?'Партия +20%':'Заказать '+fmt(o2*1.2)+' шт.'}
+else{v='hold';q='Заказ при остатке ниже '+fmt(x.rop)+' шт.';if(!why.length)why.push('показатели в норме')}
+x.v=v;x.why=why;x.q=q;x.hs=Math.round(Math.max(0,100-Math.min(30,x.rr)-Math.min(20,x.bad*1.5)-(x.mg<25?Math.min(20,25-x.mg):0)-(x.tr!==null&&x.tr<0?Math.min(15,-x.tr/3):0)-(x.days>90?15:0)-(x.cl==='C'?10:0)));
+x.imp=v==='stop'||v==='cut'?x.excCap+x.loss:v==='up'?x.lost:0});
+const act=rows.filter(x=>x.imp>0).sort((a,b)=>b.imp-a.imp).slice(0,5);
+const txt=x=>x.v==='up'?`Остатка хватит на ${fmt(x.days)} дн., а поставка идёт ${CFG.lead}. Если не заказать, можно потерять около ${fmt(x.lost)} выручки.`:`Заморожено в излишке ${fmt(x.excCap)}, ожидаемые потери на возвратах за ${CFG.hor} дн. около ${fmt(x.loss)}.`;
+const hasSt=S.rec.length>0,sf=sm(rows,'frozen'),se=sm(rows,'excCap');
+const wd=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],wg=grp(OK(),x=>(new Date(x.k+'T00:00:00').getDay()+6)%7),wv=wd.map((_,i)=>{const a=wg[i]||[];return a.length?sm(a,'rev')/new Set(a.map(x=>x.k)).size:0}),best=wv.indexOf(Math.max(...wv)),worst=wv.indexOf(Math.min(...wv));
+const mx=['A','B','C'].map(a=>`<tr><td>${a}</td>${['X','Y','Z'].map(z=>`<td style="white-space:normal;text-align:left">${rows.filter(x=>x.cl===a&&x.xyz===z).map(x=>x.k).join(', ')||'—'}</td>`).join('')}</tr>`).join('');
+const inp=(l,k)=>`<div class="stp"><span>${l}</span><div><button onclick="stp('${k}',-1)" aria-label="Меньше">−</button><b class="sv">${CFG[k]}</b><button onclick="stp('${k}',1)" aria-label="Больше">+</button></div></div>`;
+const flt=x=>FILT==='all'||(FILT==='stop'&&x.v==='stop')||(FILT==='cut'&&x.v==='cut')||(FILT==='up'&&(x.v==='up'||x.v==='grow'))||(FILT==='ok'&&(x.v==='hold'||x.v==='price')),chips=[['all','Все'],['stop','Не закупать'],['cut','Закупать меньше'],['up','Заказать или расти'],['ok','В норме']].map(([k,l])=>`<button class="chip ${FILT===k?'on':''}" onclick="FILT='${k}';QUIET=true;render()">${l}</button>`).join('');
+o.innerHTML=`<div class="box set">${inp('Срок поставки, дней','lead')}${inp('Страховой запас, дней','safe')}${inp('Закупка на, дней','hor')}</div>
+${act.length?`<h2>Что сделать в первую очередь</h2><div class="box">${act.map(x=>`<p style="margin:6px 0"><b>${x.k}</b>: ${L[x.v][0].toLowerCase()}. ${txt(x)}</p>`).join('')}</div>`:''}
+<div class="cards"><div class="c"><span>Деньги в остатках</span><strong>${hasSt?fmt(sf):'—'}</strong><em>по себестоимости</em></div><div class="c"><span>Из них излишек</span><strong class="neg">${hasSt?fmt(se):'—'}</strong><em>больше 90 дней продаж</em></div><div class="c"><span>Потери на возвратах</span><strong class="neg">${fmt(sm(rows,'loss'))}</strong><em>прогноз на ${CFG.hor} дн.</em></div><div class="c"><span>Риск упущенной выручки</span><strong>${fmt(sm(rows,'lost'))}</strong><em>если не заказать вовремя</em></div><div class="c"><span>Прогноз выручки</span><strong>${fmt(sm(rows,'fcRev'))}</strong><em>на ${CFG.hor} дн.</em></div></div>
+<h2>Рекомендации по товарам</h2><div class="chips">${chips}</div><div class="box">${tbl(['Товар','ABC·XYZ','Здоровье','Совет','Прогноз, шт.','Остаток, дн.','Закупка','Почему'],rows.map((x,i)=>!flt(x)?null:[`<a href="#" onclick="SEL=${i};recsChart();return false">${x.k}</a>`,x.cl+'·'+x.xyz,`<span class="t ${x.hs>=70?'A':x.hs>=45?'B':'C'}">${x.hs}</span>`,`<span class="t ${L[x.v][1]}" style="white-space:normal">${L[x.v][0]}</span>`,fmt(x.fc),x.days===null?'—':fmt(x.days),`<span style="white-space:normal;display:inline-block;text-align:left;min-width:150px">${x.q}</span>`,`<span style="white-space:normal;display:inline-block;text-align:left;min-width:240px">${x.why.join('; ')}</span>`]).filter(Boolean))}</div>
+<p class="s">Здоровье товара от 0 до 100 учитывает возвраты, брак, маржу, тренд спроса, залежавшийся запас и класс ABC. Нажмите на название товара, чтобы увидеть прогноз.</p>
+<div class="g2"><div><h2 id="rt">Прогноз по товару</h2><div class="box"><canvas id="c1"></canvas></div></div><div><h2>Выручка: факт и прогноз на 4 недели</h2><div class="box"><canvas id="c2"></canvas></div></div></div>
+<h2>Матрица ABC·XYZ</h2><div class="box"><table><tr><th></th><th>X: спрос стабильный</th><th>Y: колеблется</th><th>Z: скачет</th></tr>${mx}</table></div><p class="s">AX — главные товары, их нельзя допускать до нехватки. CZ — кандидаты на вывод из ассортимента.</p>
+<h2>Выручка по дням недели</h2><div class="box"><canvas id="c3"></canvas></div><p class="s">Лучший день: ${wd[best]}, слабый: ${wd[worst]}. Планируйте акции и поставки с учётом этого.</p>`;
+recsChart();
+const tw=grp(OK(),x=>wk(x.k)),sr=WK.map(w=>tw[w]?sm(tw[w],'rev'):0),rg=reg(sr),n=sr.length,lab=[...WK,...[1,2,3,4].map(j=>addD(LF,7*j))].map(s=>s.slice(5));
+mk('c2','line',lab,[{label:'Факт',data:[...sr,null,null,null,null]},{label:'Прогноз',borderDash:[6,4],data:[...sr.map((_,i)=>i==n-1?sr[i]:null),...[1,2,3,4].map(j=>pw(rg,j))]}]);
+mk('c3','bar',wd,[{label:'Средняя выручка за день',data:wv}])}
+function recsChart(){const x=RW[SEL];if(!x)return;const f=[1,2,3,4].map(j=>Math.round(pw(x.rg,j))),n=x.ser.length,t=document.getElementById('rt');if(t)t.textContent='Прогноз: '+x.k;
+mk('c1','line',[...WK,...[1,2,3,4].map(j=>addD(LF,7*j))].map(s=>s.slice(5)),[{label:'Продано, шт./нед.',data:[...x.ser,null,null,null,null]},{label:'Прогноз',borderDash:[6,4],data:[...x.ser.map((v,i)=>i==n-1?v:null),...f]}])}
+function abc(o){const g=grp(OK(),x=>x.item);Object.keys(P).forEach(k=>g[k]=g[k]||[]);
+const a=Object.keys(g).map(k=>({k,rev:sm(g[k],'rev'),u:sm(g[k],'q')})).sort((x,y)=>y.rev-x.rev),tot=sm(a,'rev')||1;let c=0;
+a.forEach(x=>{const before=c/tot;c+=x.rev;x.sh=x.rev/tot*100;x.cum=c/tot*100;x.cl=before<0.8?'A':before<0.95?'B':'C'});
+const cn=l=>a.filter(x=>x.cl===l);
+o.innerHTML=`<p class="s">A — товары, дающие первые 80% выручки, B — следующие 15%, C — последние 5% (и товары без продаж).</p><div class="cards">${['A','B','C'].map(l=>`<div class="c"><span>Класс ${l}</span><strong>${cn(l).length} тов.</strong><em>${pc(sm(cn(l),'sh'))} выручки</em></div>`).join('')}</div>`+box('Парето: выручка по товарам','c1')+`<div class="box">${tbl(['Товар','Выручка','Доля','Накопл.','Единиц','Класс'],a.map(x=>[x.k,fmt(x.rev),pc(x.sh)+pb(x.sh/(a[0]?a[0].sh:1)*100),pc(x.cum),fmt(x.u),`<span class="t ${x.cl}">${x.cl}</span>`]))}</div>`;
+mk('c1','bar',a.map(x=>x.k),[{label:'Выручка',data:a.map(x=>x.rev)},{label:'Накопленная доля, %',type:'line',yAxisID:'y2',data:a.map(x=>x.cum)}],{scales:{x:{ticks:{color:'#888'}},y:{},y2:{position:'right',max:100,grid:{drawOnChartArea:false}}}})}
+function margin(o){const g=grp(OK(),x=>x.item),names=[...new Set([...Object.keys(P),...Object.keys(g),...Object.keys(ST)])],cut=addD(MAXK,-29),sold=grp(OK(),x=>x.item);
+const rows=names.map(k=>{const r=g[k]||[],rev=sm(r,'rev'),pf=rev-sm(r,'cost'),u=sm(r,'q'),u30=sm(r.filter(x=>x.k>=cut),'q'),s=ST[k],st=s?(s.left!==null?s.left:s.inn-u):null,days=st!==null&&u30?st/(u30/30):null;
+return{k,rev,pf,mg:rev?pf/rev*100:0,u,st,days}}).sort((a,b)=>b.pf-a.pf);
+o.innerHTML=(S.rec.length?'':'<p class="s">Файл прихода не загружен — остатки не показаны.</p>')+box('Прибыль по товарам','c1')+`<div class="box">${tbl(['Товар','Выручка','Прибыль','Маржа','Продано','Остаток','Хватит дней'],rows.map(r=>[r.k,fmt(r.rev),fmt(r.pf),pc(r.mg)+pb(r.mg*2),fmt(r.u),r.st===null?'—':fmt(r.st),r.days===null?'—':`<span class="${r.days<14?'neg':''}">${fmt(r.days)}</span>`]))}</div><p class="s">«Хватит дней» считается по средним продажам за последние 30 дней. Меньше 14 дней выделено красным.</p>`;
+mk('c1','bar',rows.map(r=>r.k),[{label:'Прибыль',data:rows.map(r=>r.pf)}])}
+function geoT(a,f){const g=grp(a,f);return Object.keys(g).map(k=>{const r=g[k],ok=r.filter(x=>x.st==='o');return{k,n:r.length,rev:sm(ok,'rev'),pf:sm(ok,'rev')-sm(ok,'cost'),rp:r.filter(x=>x.st!=='o').length/r.length*100}}).sort((a,b)=>b.rev-a.rev)}
+function geo(o){let h='';[['Города',x=>x.city,'c1'],['Каналы',x=>x.chan,'c2']].forEach(([t,f,id])=>{const t2=geoT(D,f);if(t2.length==1&&t2[0].k==='—'){h+=`<h2>${t}</h2><p class="hint">В файле продаж нет колонки «${t=='Города'?'город':'канал'}».</p>`;return}
+h+=`<h2>${t}</h2><div class="g2"><div class="box"><canvas id="${id}"></canvas></div><div class="box">${tbl([t.slice(0,-1)+'',' Выручка','Заказов','Прибыль','Возвраты и отмены'],t2.map(r=>[r.k,fmt(r.rev),fmt(r.n),fmt(r.pf),`<span class="${r.rp>15?'neg':''}">${pc(r.rp)}</span>${pb(r.rp*3,'bd')}`]))}</div></div>`;setTimeout(()=>mk(id,'bar',t2.map(r=>r.k),[{label:'Выручка',data:t2.map(r=>r.rev)}]),0)});o.innerHTML=h}
+function returns(o){const r=D.filter(x=>x.st==='r'),c=D.filter(x=>x.st==='c');if(!D.some(x=>x.hasSt)){o.innerHTML='<p class="hint">Добавьте в продажи колонку «статус» со значениями «возврат», «брак» или «отмена», чтобы увидеть этот отчёт.</p>';return}
+const loss=sm(r,'rev');const by=(a,f)=>{const g=grp(a,f);return Object.keys(g).map(k=>({k,n:g[k].length,s:sm(g[k],'rev')})).sort((x,y)=>y.s-x.s)};
+const t=(a,f,h)=>`<div class="box">${tbl([h,'Шт. строк','Потери'],by(a,f).map(x=>[x.k,fmt(x.n),fmt(x.s)]))}</div>`;
+o.innerHTML=`<div class="cards"><div class="c"><span>Возвраты и брак</span><strong>${fmt(r.length)}</strong><em>${pc(r.length/D.length*100)} заказов</em></div><div class="c"><span>Потери на возвратах</span><strong class="neg">${fmt(loss)}</strong></div><div class="c"><span>Отмены</span><strong>${fmt(c.length)}</strong><em>${pc(c.length/D.length*100)} заказов</em></div><div class="c"><span>Выкуп</span><strong>${pc((D.length-r.length-c.length)/D.length*100)}</strong></div></div><div class="g2"><div><h2>По товарам</h2>${t(r,x=>x.item,'Товар')}</div><div><h2>По причинам</h2>${t(r,x=>x.reason,'Причина')}</div><div><h2>По каналам</h2>${t(r,x=>x.chan,'Канал')}</div><div><h2>По городам</h2>${t(r,x=>x.city,'Город')}</div></div>`}
+$('#demo').onclick=()=>{let z=7;const rnd=()=>(z=(z*16807)%2147483647)/2147483647;
+const prods=[['Футболка',400,990],['Худи',1100,2800],['Кепка',200,650],['Рюкзак',900,2400],['Кружка',120,450],['Бутылка',250,800],['Носки',60,250],['Шарф',300,900]],cities=['Алматы','Астана','Шымкент','Караганда'],ch=['Сайт','Маркетплейс','Instagram'],rs=['Не подошёл размер','Брак','Не понравилось'];
+S.prods=prods.map(p=>({'Товар':p[0],'Себестоимость':p[1],'Цена':p[2]}));S.sales=[];const t=new Date();
+for(let i=119;i>=0;i--){const d=new Date(t);d.setDate(d.getDate()-i);const n=15+Math.floor(rnd()*25*(1+(119-i)/200)),ds=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+for(let j=0;j<n;j++){const p=prods[Math.floor(Math.pow(rnd(),1.8)*prods.length)],q=1+Math.floor(rnd()*3),x=rnd()*(p[0]==='Шарф'?0.3:1),st=x<.08?'Возврат':x<.11?'Брак':x<.2?'Отмена':'Выкуплен';
+S.sales.push({'Дата продажи':ds,'Товар':p[0],'Количество':q,'Цена':p[2],'Сумма':q*p[2],'Себестоимость':p[1],'Выручка':q*p[2],'Город':cities[Math.floor(rnd()*4)],'Канал':ch[Math.floor(rnd()*3)],'Статус':st,'Причина':st==='Возврат'||st==='Брак'?(st==='Брак'?'Брак':rs[Math.floor(rnd()*3)]):''})}}
+S.rec=[];prods.forEach(p=>{[60,30,5].forEach((ago,i)=>{const d=new Date(t);d.setDate(d.getDate()-ago);S.rec.push({'Товар':p[0],'Дата прихода':d.toISOString().slice(0,10),'Количество':200,'Продано':'','Остатки':Math.floor(rnd()*(i==2?60:300))})})});
+['l1','l2','l3'].forEach(l=>$('#'+l).classList.add('ok'));build()};
+if(window.Chart){Chart.defaults.font.family='Manrope,"Segoe UI",system-ui,sans-serif';Chart.defaults.animation.duration=1200}
+let FILT='all',QUIET=false,REF='',CM='';
+document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
+function th(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';QUIET=true;if(D.length)render()}
+const pb=(p,c)=>`<span class="pb ${c||''}"><i style="--w:${Math.max(3,Math.min(100,p||0))}%"></i></span>`;
+const ring=(p,l,sub,dk)=>`<div class="c rg ${dk?'dk':''}"><div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="rt"/><circle cx="50" cy="50" r="40" class="rf" data-p="${Math.max(0,Math.min(100,p||0))}"/></svg><strong>${pc(p)}</strong></div><span>${l}</span><em>${sub}</em></div>`;
+function mbars(v,lb){const mx=Math.max(...v,1),n=v.length;return`<div class="c mb"><span>Выручка по дням</span><strong>${fmt(v[n-1])}</strong><em>${lb[n-1]}</em><div class="bs anim">${v.map((x,i)=>`<i class="${i==n-1?'hi':''}" style="--h:${Math.max(7,x/mx*100)}%;--i:${i}" data-v="${fmt(x)}" data-l="${lb[i]}"></i>`).join('')}</div></div>`}
+function wavec(v,lb){const mx=Math.max(...v,1),n=v.length;return`<div class="c dk wvc"><div class="wh"><button class="pl" onclick="playW(this)" aria-label="Проиграть динамику">▶</button><div><b>Динамика выручки</b><small>нажмите ▶, чтобы пройти по последним ${n} дням</small></div><em class="wt">${lb[n-1]}</em></div><div class="wf anim">${v.map((x,i)=>`<i style="--h:${Math.max(9,x/mx*100)}%;--i:${i}"></i>`).join('')}</div><span hidden id="wd">${JSON.stringify(lb.map((l,i)=>l+' · '+fmt(v[i])))}</span></div>`}
+function playW(b){const c=b.closest('.wvc'),bars=[...c.querySelectorAll('.wf i')],d=JSON.parse(c.querySelector('#wd').textContent);clearInterval(c._t);bars.forEach(x=>x.classList.remove('on'));let i=0;b.textContent='❚❚';c._t=setInterval(()=>{if(i>=bars.length){clearInterval(c._t);b.textContent='▶';return}bars[i].classList.add('on');c.querySelector('.wt').textContent=d[i];i++},95)}
+function cal(){const r=REF||MAXK,ym=CM||r.slice(0,7),[y,m]=ym.split('-').map(Number),f=new Date(y,m-1,1),off=(f.getDay()+6)%7,n=new Date(y,m,0).getDate(),has=new Set(D.map(x=>x.k));
+let h=`<div class="cal"><div class="ch2"><b>${f.toLocaleString('ru-RU',{month:'long',year:'numeric'})}</b><span><button onclick="cm(-1)" aria-label="Предыдущий месяц">‹</button><button onclick="cm(1)" aria-label="Следующий месяц">›</button></span></div><div class="cg">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d=>`<i>${d}</i>`).join('')}${'<u></u>'.repeat(off)}`;
+for(let d=1;d<=n;d++){const k=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;h+=`<button class="${k===r?'sel':''}" ${has.has(k)?'':'disabled'} onclick="REF='${k}';render()">${d}</button>`}return h+'</div></div>'}
+function cm(d){const r=REF||MAXK,[y,m]=(CM||r.slice(0,7)).split('-').map(Number);CM=key(new Date(y,m-1+d,1)).slice(0,7);QUIET=true;render()}
+function stp(k,d){CFG[k]=Math.max(0,CFG[k]+d);QUIET=true;render()}
+function pill(){const n=$('#nav'),b=n&&n.querySelector('button.on'),p=n&&n.querySelector('.pill');if(b&&p){p.style.width=b.offsetWidth+'px';p.style.transform='translateX('+b.offsetLeft+'px)'}}
+addEventListener('resize',pill);
+function odo(el,t){t=t||el.textContent.trim();const pat=t.replace(/\d/g,'0'),ds=[...t].filter(c=>/\d/.test(c));
+if(el._pat===pat){el.querySelectorAll('.dg>span').forEach((s,i)=>s.style.setProperty('--d',ds[i]));return}
+el._pat=pat;el.setAttribute('role','img');el.setAttribute('aria-label',t);
+el.innerHTML=[...t].map((c,i)=>/\d/.test(c)?`<span class="dg" aria-hidden="true"><span style="--d:0;--i:${i}">${'0123456789'.split('').join('<br>')}</span></span>`:`<span class="ch" aria-hidden="true">${c}</span>`).join('');
+requestAnimationFrame(()=>requestAnimationFrame(()=>el.querySelectorAll('.dg>span').forEach((s,i)=>s.style.setProperty('--d',ds[i]))))}
+function fx(){const q=QUIET;QUIET=false;
+if(!q)document.querySelectorAll('#out h2,#out .box,#out .c,#out .cal,#out p.s,#out .g2>div,#out .empty,#out .chips').forEach((e,i)=>{e.classList.remove('rv');void e.offsetWidth;e.style.animationDelay=Math.min(i*45,720)+'ms';e.classList.add('rv')});
+const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+if(!rm)document.querySelectorAll('#out .c strong,#out .sv').forEach(el=>{if(/\d/.test(el.textContent))odo(el)});
+requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelectorAll('#out .pb i,#out .anim').forEach(e=>e.classList.add('in'));document.querySelectorAll('#out .rf').forEach(e=>e.style.strokeDashoffset=251.33*(1-e.dataset.p/100))}));
+document.querySelectorAll('#out .bs').forEach(b=>{const h=e=>{const i=e.target.closest('i');if(!i)return;b.querySelectorAll('i').forEach(x=>x.classList.toggle('hi',x===i));const c=b.closest('.c');c.querySelector('em').textContent=i.dataset.l;odo(c.querySelector('strong'),i.dataset.v)};b.onmouseover=h;b.onclick=h})}
+
+const TH=[
+['Сводка','ПРОДАЖИ','как на ладони','Что случилось сегодня и вчера и как это выглядит на фоне прошлой недели.'],
+['Рекомендации','ЗАКУПКА','без догадок','Прогноз, точка заказа и честные советы: что докупить, а что уже лежит мёртвым грузом.'],
+['Динамика','ДИНАМИКА','недели и месяцы','Куда идёт выручка и прибыль: растём, стоим или тихо проседаем.'],
+['ABC-анализ','ABC-АНАЛИЗ','кто кормит бизнес','Несколько товаров дают почти всю выручку. Вот они, и вот те, кого почти не видно.'],
+['Маржа и остатки','МАРЖА','и остатки','Сколько зарабатывает каждый товар и на сколько дней его хватит на складе.'],
+['Города и каналы','ГОРОДА','и каналы','Где продаётся лучше всего и где возвращают чаще.'],
+['Возвраты и брак','ВОЗВРАТЫ','и брак','Сколько денег уходит обратно и по каким причинам.']];
+let HT=-1;
+function navSet(){$('#nav').innerHTML=TH.map((t,i)=>`<button class="${i==TAB?'on':''}" onclick="TAB=${i};render()">${t[0]}</button>`).join('')+'<span class="pill"></span>';
+$('#dots').innerHTML=TH.map((t,i)=>`<button class="dt ${i==TAB?'on':''}" onclick="TAB=${i};render();scrollTo({top:0,behavior:'smooth'})" aria-label="${t[0]}"></button>`).join('')}
+function heroRender(){const t=TH[TAB],has=D.length,R=REF||MAXK;
+let bars=[34,48,40,62,54,72,50,68,84,60,76,92,70,86],rev='1 248 300',ret='87.4%',topN='Худи',sub='пример';
+if(has){const ok=OK(),g=grp(ok,x=>x.k);bars=[];for(let i=13;i>=0;i--){const k=addD(R,-i);bars.push(g[k]?sm(g[k],'rev'):0)}
+rev=fmt(bars[13]);ret=pc((D.length-D.filter(x=>x.st!=='o').length)/D.length*100);
+const gi=grp(ok,x=>x.item),tp=Object.keys(gi).sort((a,b)=>sm(gi[b],'rev')-sm(gi[a],'rev'))[0];topN=tp||'—';sub=R}
+const mx=Math.max(...bars,1),n='0'+(TAB+1);
+$('#hero').innerHTML=`<div class="ghost">${n}</div><div class="hl"><span class="bdg">${n} <i></i> ${t[0].toUpperCase()}</span><h1 class="hd"><span class="ln"><span>${t[1]}</span></span><em class="ln sr"><span>${t[2]}</span></em></h1><p>${t[3]}</p><div class="acts"><a class="cta" href="#up">Загрузить файлы ↓</a></div></div>
+<div class="hp"><div class="ph"><div class="scr"><div class="notch"></div><small>${sub}</small><b class="big">${rev}</b><span class="lbl">выручка за день</span><div class="pbars">${bars.map((v,i)=>`<i style="--h:${Math.max(8,v/mx*100)}%;--i:${i}"></i>`).join('')}</div><div class="pf"><span>Выкуп</span><b>${ret}</b></div></div></div>
+<span class="chip2" style="--d:.5s;top:12%;left:2%"><u style="background:#ff5a36"></u>Выкуп ${ret}</span><span class="chip2" style="--d:.7s;top:27%;right:0"><u style="background:#7c5cff"></u>Топ: ${topN}</span><span class="chip2" style="--d:.9s;bottom:27%;left:-2%"><u style="background:#16b364"></u>Прогноз</span><span class="chip2" style="--d:1.1s;bottom:10%;right:4%"><u style="background:#2f80ff"></u>Остатки</span></div>`;
+document.querySelectorAll('#dots .dt').forEach((b,i)=>b.classList.toggle('on',i==TAB));
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches)odo(document.querySelector('.scr .big'))}
+
+navSet();render();fx();
+</script>
+</body>
+</html>
